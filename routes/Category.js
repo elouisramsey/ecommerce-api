@@ -114,7 +114,7 @@ router.get('/getitemcategory/getCategory=:category', async (req, res) => {
 router.get('/:nameofcategory/toprated', async (req, res) => {
   const category = req.params.nameofcategory
   const regex = new RegExp(category, 'i')
-  console.log(regex)
+
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
 
@@ -152,7 +152,7 @@ router.get('/:nameofcategory/toprated', async (req, res) => {
 router.get('/:nameofcategory/topsales', async (req, res) => {
   const category = req.params.nameofcategory
   const regex = new RegExp(category, 'i')
-  console.log(regex)
+
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
 

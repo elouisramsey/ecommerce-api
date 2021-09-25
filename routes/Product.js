@@ -120,7 +120,6 @@ router.get('/products/:product_id', async (req, res) => {
     const product = await Product.findById(req.params.product_id)
     res.json(product)
   } catch (err) {
-    console.log(err)
     return res.status(500).send('There was an error getting this product.')
   }
 })
@@ -134,8 +133,8 @@ router.get('/products', pagination(Product), (req, res) => {
 router.get('/searchterm=:productName', async (req, res) => {
   const name = req.params.productName
   const regex = new RegExp(name, 'i')
-console.log(regex);
-    const perPage = 8
+
+    const perPage = 100
     let page = parseInt(req.query.page) || 1
 
   try {

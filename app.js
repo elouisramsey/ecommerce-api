@@ -13,7 +13,12 @@ const PORT = process.env.PORT || 7000
 const indexRouter = require('./routes/index');
 
 const app = express();
-
+const session = {
+  secret: process.env.SESSION_SECRET,
+  cookie: {},
+  resave: false,
+  saveUninitialized: false
+}
 // Connect DB
 mongoose
   .connect(process.env.ATLAS_URI)
@@ -33,13 +38,7 @@ app.use(cookieParser());
 app.use(helmet())
 app.use(express.static(path.join(__dirname, 'public')));
 
-const session = {
-  secret: process.env.SESSION_SECRET,
-  cookie: {},
-  resave: false,
-  saveUninitialized: false
-}
-
+app.use(expressSession(session))
 app.use('/', indexRouter);
 app.use('/product', require('./routes/product'));
 app.use('/categories', require('./routes/category'));
