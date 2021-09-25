@@ -11,7 +11,7 @@ require('dotenv').config()
 const PORT = process.env.PORT || 7000
 
 const indexRouter = require('./routes/index');
-
+const MongoStore = require('connect-mongo')(session)
 const app = express();
 const session = {
   secret: process.env.SESSION_SECRET,
@@ -38,10 +38,10 @@ app.use(cookieParser());
 app.use(helmet())
 app.use(express.static(path.join(__dirname, 'pages')));
 
-app.use(expressSession(session))
+app.use({ secret: process.env.SESSION_SECRET, store: new MongoStore(session) })
 app.use('/', indexRouter);
-app.use('/product', require('./routes/product'));
-app.use('/categories', require('./routes/category'));
+app.use('/product', require('./routes/Product'));
+app.use('/categories', require('./routes/Category'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
