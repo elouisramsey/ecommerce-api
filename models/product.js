@@ -56,7 +56,9 @@ const productSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: [true, 'Please add a price'],
-      trim: true
+      trim: true,
+      minlength: 2,
+      maxlength: 3
     },
     stock: {
       type: Number,
