@@ -33,7 +33,7 @@ const parser = multer({ storage: storage })
 function pagination(model) {
   return async (req, res, next) => {
     const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 100
+    const limit = parseInt(req.query.limit) || 40
 
     const startIndex = (page - 1) * limit
     const endIndex = page * limit
@@ -54,6 +54,7 @@ function pagination(model) {
     try {
       results.results = await model.find().limit(limit).skip(startIndex).exec()
       res.paginatedResults = results
+      results.numberofitems = results.length
       next()
     } catch (error) {
       res.status(500).json({ message: 'Error paginating' })
@@ -125,8 +126,34 @@ router.get('/products/:product_id', async (req, res) => {
 })
 
 // get all products
-router.get('/products', pagination(Product), (req, res) => {
-  res.json(res.paginatedResults)
+router.get('/products', async (req, res) => {
+   const limit = parseInt(req.query.limit) || 50
+   let page = parseInt(req.query.page) || 1
+
+try {
+   const allProducts = await Product.find()
+     .sort('-createdAt')
+     .skip(limit * page - limit)
+     .limit(limit)
+   const count = await Product.countDocuments()
+
+   res.json({
+     pageName: 'All available products',
+     products: allProducts,
+     currentPage: page,
+     pages: Math.ceil(count / limit),
+     numberOfProducts: count
+   })
+} catch (err) {
+   return res
+     .status(500)
+     .send(
+       'There was an error getting all products.'
+     )
+}
+
+
+
 })
 
 // get all products by name
