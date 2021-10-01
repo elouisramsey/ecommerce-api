@@ -20,9 +20,6 @@ const storage = new CloudinaryStorage({
       'jpg', 'png', 'JPG', 'jpeg'
     }, // supports promises as well
     public_id: (req, file) => {
-      console.log(
-        new Date().toISOString().replace(/:/g, '-') + file.originalname
-      )
       return new Date().toISOString().replace(/:/g, '-') + file.originalname
     }
   }
@@ -116,10 +113,28 @@ router.post('/', parser.array('image'), async (req, res) => {
 })
 
 // get single product
-router.get('/products/:product_id', async (req, res) => {
+router.get('/:product_id', async (req, res) => {
+  const { similarProducts } = req.query
   try {
     const product = await Product.findById(req.params.product_id)
-    res.json(product)
+    const similarItems = await Product.aggregate([
+      { $match: { category_id: product.category_id } },
+      { $sample: { size: 4 } }
+    ])
+
+    if (similarProducts && similarProducts === 'true') {
+      res.json({
+        product: product,
+        pageName: 'Product Details',
+        similarProducts: similarItems
+      })
+    } else {
+      res.json({
+        product: product,
+        pageName: 'Product Details'
+      })
+    }
+    // console.log(similarItems)
   } catch (err) {
     return res.status(500).send('There was an error getting this product.')
   }
@@ -127,62 +142,55 @@ router.get('/products/:product_id', async (req, res) => {
 
 // get all products
 router.get('/products', async (req, res) => {
-   const limit = parseInt(req.query.limit) || 50
-   let page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 50
+  let page = parseInt(req.query.page) || 1
 
-try {
-   const allProducts = await Product.find()
-     .sort('-createdAt')
-     .skip(limit * page - limit)
-     .limit(limit)
-   const count = await Product.countDocuments()
+  try {
+    const allProducts = await Product.find()
+      .sort('-createdAt')
+      .skip(limit * page - limit)
+      .limit(limit)
+    const count = await Product.countDocuments()
 
-   res.json({
-     pageName: 'All available products',
-     products: allProducts,
-     currentPage: page,
-     pages: Math.ceil(count / limit),
-     numberOfProducts: count
-   })
-} catch (err) {
-   return res
-     .status(500)
-     .send(
-       'There was an error getting all products.'
-     )
-}
-
-
-
+    res.json({
+      pageName: 'All available products',
+      products: allProducts,
+      currentPage: page,
+      pages: Math.ceil(count / limit),
+      numberOfProducts: count
+    })
+  } catch (err) {
+    return res.status(500).send('There was an error getting all products.')
+  }
 })
 
 // get all products by name
-router.get('/searchterm=:productName', async (req, res) => {
-  const name = req.params.productName
+router.get('/filterbyname/search', async (req, res) => {
+  const name = req.query.name
   const regex = new RegExp(name, 'i')
 
-    const perPage = 100
-    let page = parseInt(req.query.page) || 1
+  const limit = parseInt(req.query.limit) || 100
+  let page = parseInt(req.query.page) || 1
 
   try {
     const product = await Product.find({
-      name:  regex 
+      name: regex
     })
       .sort('-createdAt')
-      .skip(perPage * page - perPage)
-      .limit(perPage)
-      .populate('category')
+      .skip(limit * page - limit)
+      .limit(limit)
       .exec()
 
- const count = await Product.count({
-   title: regex
- })
+    const count = await Product.count({
+      name: regex
+    })
 
     res.json({
       products: product,
       pageName: 'Search Results',
-      current: page,
-      pages: Math.ceil(count / perPage)
+      currentPage: page,
+      pages: Math.ceil(count / limit),
+      numberofProducts: count
     })
   } catch (err) {
     return res
@@ -193,9 +201,25 @@ router.get('/searchterm=:productName', async (req, res) => {
 
 // get all toprated products
 router.get('/products/toprated', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 100
+  let page = parseInt(req.query.page) || 1
+
   try {
-    const product = await Product.find({ ratings: { $gte: 3 } })
-    res.json(product)
+    const product = await Product.find({ ratings: { $gte: 4 } })
+      .sort('-createdAt')
+      .skip(limit * page - limit)
+      .limit(limit)
+      .exec()
+
+    const count = await Product.count({ ratings: { $gte: 4 } })
+
+    res.json({
+      products: product,
+      pageName: 'Top rated products',
+      currentPage: page,
+      pages: Math.ceil(count / limit),
+      numberofProducts: count
+    })
   } catch (err) {
     return res
       .status(500)
@@ -205,9 +229,26 @@ router.get('/products/toprated', async (req, res) => {
 
 // get all topsales products
 router.get('/products/topsales', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 100
+  let page = parseInt(req.query.page) || 1
+  
   try {
     const product = await Product.find({ sales: { $gte: 100 } })
-    res.json(product)
+      .sort('-createdAt')
+      .skip(limit * page - limit)
+      .limit(limit)
+      .exec()
+
+    const count = await Product.count({ sales: { $gte: 100 } })
+
+    res.json({
+      products: product,
+      pageName: 'Top sold products',
+      currentPage: page,
+      pages: Math.ceil(count / limit),
+      numberofProducts: count
+    })
+    
   } catch (err) {
     return res
       .status(500)
