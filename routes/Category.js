@@ -64,15 +64,17 @@ router.post('/', parser.array('image'), async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const categories = await Category.find()
-    res.json(categories)
+     const count = await Category.countDocuments()
+
+    res.json({categories: categories, pageName: 'List of categories', numberOfCategories: count})
   } catch (err) {
     return res.status(500).send('There was an error getting categories.')
   }
 })
 
 // get all products by category
-router.get('/getitemcategory/getCategory=:category', async (req, res) => {
-  const category = req.params.category
+router.get('/getitemsbycategory', async (req, res) => {
+  const category = req.query.category
   const regex = new RegExp(category, 'i')
 
   const limit = parseInt(req.query.limit) || 100
@@ -80,12 +82,10 @@ router.get('/getitemcategory/getCategory=:category', async (req, res) => {
 
   try {
     const foundCategory = await Category.findOne({
-      category: regex.category_id
+      category_id: category
     })
 
-    const allProducts = await Product.find()
-      .where('category_id')
-      .equals(regex)
+    const allProducts = await Product.find({ category_id: regex })
       .sort('-createdAt')
       .skip(limit * page - limit)
       .limit(limit)
@@ -108,9 +108,11 @@ router.get('/getitemcategory/getCategory=:category', async (req, res) => {
 })
 
 // get all top rated products in each category
-router.get('/:nameofcategory/toprated', async (req, res) => {
-  const category = req.params.nameofcategory
+router.get('/toprated', async (req, res) => {
+  const category = req.query.category
   const regex = new RegExp(category, 'i')
+
+  const rating = req.query.rating || 4
 
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
@@ -121,22 +123,22 @@ router.get('/:nameofcategory/toprated', async (req, res) => {
     })
 
     const allProducts = await Product.find({
-      $and: [{ category_id: regex }, { ratings: { $gte: 4 } }]
+      $and: [{ category_id: regex }, { ratings: { $gte: rating } }]
     })
       .sort('-createdAt')
       .skip(limit * page - limit)
       .limit(limit)
-      .populate('category')
 
     const count = await Product.countDocuments({
-      $and: [{ category_id: regex }, { ratings: { $gte: 4 } }]
+      $and: [{ category_id: regex }, { ratings: { $gte: rating } }]
     })
     res.json({
       pageName: foundCategory.category_name,
       currentCategory: foundCategory,
       products: allProducts,
       current: page,
-      pages: Math.ceil(count / limit)
+      pages: Math.ceil(count / limit),
+      numberofproducts: count
     })
   } catch (err) {
     return res
@@ -146,9 +148,11 @@ router.get('/:nameofcategory/toprated', async (req, res) => {
 })
 
 // get all top sold products in each category
-router.get('/:nameofcategory/topsales', async (req, res) => {
-  const category = req.params.nameofcategory
+router.get('/topsales', async (req, res) => {
+  const category = req.query.category
   const regex = new RegExp(category, 'i')
+
+  const sales = req.query.sales || 100
 
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
@@ -159,7 +163,7 @@ router.get('/:nameofcategory/topsales', async (req, res) => {
     })
 
     const allProducts = await Product.find({
-      $and: [{ category_id: regex }, { sales: { $gte: 100 } }]
+      $and: [{ category_id: regex }, { sales: { $gte: sales } }]
     })
       .sort('-createdAt')
       .skip(limit * page - limit)
@@ -167,7 +171,7 @@ router.get('/:nameofcategory/topsales', async (req, res) => {
       .populate('category')
 
     const count = await Product.countDocuments({
-      $and: [{ category_id: regex }, { sales: { $gte: 100 } }]
+      $and: [{ category_id: regex }, { sales: { $gte: sales } }]
     })
 
     res.json({

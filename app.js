@@ -52,7 +52,7 @@ app.use(
 )
 
 app.use('/', indexRouter)
-app.use('/product', require('./routes/Product'))
+app.use('/products', require('./routes/Product'))
 app.use('/categories', require('./routes/Category'))
 
 // catch 404 and forward to error handler

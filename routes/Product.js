@@ -27,38 +27,6 @@ const storage = new CloudinaryStorage({
 
 const parser = multer({ storage: storage })
 
-function pagination(model) {
-  return async (req, res, next) => {
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 40
-
-    const startIndex = (page - 1) * limit
-    const endIndex = page * limit
-
-    const results = {}
-    if (endIndex < (await model.countDocuments().exec())) {
-      results.next = {
-        page: page + 1,
-        limit: limit
-      }
-    }
-    if (startIndex > 0) {
-      results.previous = {
-        page: page - 1,
-        limit: limit
-      }
-    }
-    try {
-      results.results = await model.find().limit(limit).skip(startIndex).exec()
-      res.paginatedResults = results
-      results.numberofitems = results.length
-      next()
-    } catch (error) {
-      res.status(500).json({ message: 'Error paginating' })
-    }
-  }
-}
-
 // add new product
 router.post('/', parser.array('image'), async (req, res) => {
   const {
@@ -113,7 +81,7 @@ router.post('/', parser.array('image'), async (req, res) => {
 })
 
 // get single product
-router.get('/:product_id', async (req, res) => {
+router.get('/getproductbyid/:product_id', async (req, res) => {
   const { similarProducts } = req.query
   try {
     const product = await Product.findById(req.params.product_id)
@@ -141,8 +109,8 @@ router.get('/:product_id', async (req, res) => {
 })
 
 // get all products
-router.get('/products', async (req, res) => {
-  const limit = parseInt(req.query.limit) || 50
+router.get('/', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
 
   try {
@@ -165,7 +133,7 @@ router.get('/products', async (req, res) => {
 })
 
 // get all products by name
-router.get('/filterbyname/search', async (req, res) => {
+router.get('/getproductbyname/search', async (req, res) => {
   const name = req.query.name
   const regex = new RegExp(name, 'i')
 
@@ -200,18 +168,20 @@ router.get('/filterbyname/search', async (req, res) => {
 })
 
 // get all toprated products
-router.get('/products/toprated', async (req, res) => {
+router.get('/toprated', async (req, res) => {
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
 
+  const rating = req.query.rating || 4
+ 
   try {
-    const product = await Product.find({ ratings: { $gte: 4 } })
+    const product = await Product.find({ ratings: { $gte: rating } })
       .sort('-createdAt')
       .skip(limit * page - limit)
       .limit(limit)
       .exec()
 
-    const count = await Product.count({ ratings: { $gte: 4 } })
+    const count = await Product.count({ ratings: { $gte: rating } })
 
     res.json({
       products: product,
@@ -228,18 +198,20 @@ router.get('/products/toprated', async (req, res) => {
 })
 
 // get all topsales products
-router.get('/products/topsales', async (req, res) => {
+router.get('/topsales', async (req, res) => {
   const limit = parseInt(req.query.limit) || 100
   let page = parseInt(req.query.page) || 1
   
+  const sales = req.query.sales || 100
+
   try {
-    const product = await Product.find({ sales: { $gte: 100 } })
+    const product = await Product.find({ sales: { $gte: sales } })
       .sort('-createdAt')
       .skip(limit * page - limit)
       .limit(limit)
       .exec()
 
-    const count = await Product.count({ sales: { $gte: 100 } })
+    const count = await Product.count({ sales: { $gte: sales } })
 
     res.json({
       products: product,
